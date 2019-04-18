@@ -14,6 +14,7 @@
 					<div class="uploads">
 						<div class="btn-group" data-toggle="buttons" style="margin-bottom: 10px">
 							<label class="btn btn-default active btnFileUpload"><input type="radio" selected>File upload</label>
+							<label class="btn btn-default btnLocal"><input type="radio">Local file</label>
 							<label class="btn btn-default btnUrl"><input type="radio">URL</label>
 						</div>
 						<div class="upload">
@@ -67,6 +68,22 @@
 								<textarea id="commentUrl" class="commentUrl form-control" name="comment" rows="4"></textarea>
 							</div>
 						</div>
+						<div class="checkinlocal initialhide">
+							<div class="form-group">
+								<label for="localpath">Full path for local file</label>
+								<input id="localpath" type="text" class="localinput form-control"/>
+							</div>
+							<div class="form-group">
+								<label for="deserializerNameLocal">Deserializer</label>
+								<select id="deserializerNameLocal" class="deserializerNameLocal form-control" name="deserializerNameLocal">
+									<option value="[NONE]">Select a deserializer</option>
+								</select>
+							</div>
+							<div class="form-group">
+								<label for="commentLocal">Comment</label>
+								<textarea id="commentLocal" class="commentLocal form-control" name="comment" rows="4"></textarea>
+							</div>
+						</div>
 					</div>
 				</div>
 			  	<div class="modal-footer">
@@ -112,6 +129,9 @@ function Checkin(containerDiv, project, successFunction) {
 			
 			var option = $("<option value=\"" + deserializer.oid + "\">" + deserializer.name + "</option>");
 			containerDiv.find(".deserializerNameUrl").append(option);
+			
+			var option = $("<option value=\"" + deserializer.oid + "\">" + deserializer.name + "</option>");
+			containerDiv.find(".deserializerNameLocal").append(option);
 		});
 		if (data[1].result) {
 			$(".mergeDiv").show();
@@ -249,7 +269,13 @@ function Checkin(containerDiv, project, successFunction) {
 	
 	this.updateSubmitButton = function() {
 		window.setTimeout(function(){
-			if (containerDiv.find(".btnFileUpload").hasClass("active")) {
+			if (containerDiv.find(".btnLocal").hasClass("active")) {
+		        if (containerDiv.find(".deserializerNameLocal").val() != "[NONE]" && containerDiv.find(".localinput").val().trim() != "") {
+		        	containerDiv.find(".uploadButton").show();
+		        } else {
+		        	containerDiv.find(".uploadButton").hide();
+		        }
+			} else if (containerDiv.find(".btnFileUpload").hasClass("active")) {
 		        if (containerDiv.find(".deserializerName").val() != "[NONE]" && othis.validFile) {
 		        	containerDiv.find(".uploadButton").show();
 		        } else {
@@ -290,7 +316,26 @@ function Checkin(containerDiv, project, successFunction) {
 	containerDiv.find(".deserializerName").change(othis.updateSubmitButton);
 	
 	containerDiv.find(".uploadButton").click(function(event){
-		if (containerDiv.find(".checkinurl").is(":visible")) {
+		if (containerDiv.find(".checkinlocal").is(":visible")) {
+			othis.hideUpload();
+			Global.bimServerApi.callWithFullIndication("ServiceInterface", "checkinAsyncLocal", {
+				deserializerOid: containerDiv.find(".checkinlocal .deserializerNameLocal").val(),
+				comment: containerDiv.find(".commentLocal").val(),
+				merge: false,
+				poid: othis.project.oid,
+				fileFullPath: containerDiv.find(".localinput").val(),
+			}, function(data){
+				currentCheckinId = data;
+				containerDiv.find(".uploadStatus").html("Uploading file...");
+				containerDiv.find(".progressBarHolder .uploadProgressBar").remove();
+				containerDiv.find(".progressBarHolder").append("<div class=\"uploadProgressBar progress\"><div class=\"progress-bar\"></div></div>");
+				Global.bimServerApi.registerProgressHandler(currentCheckinId, othis.progressHandler);
+				
+				containerDiv.find(".progressBarHolder .uploadProgressBar").remove();
+				containerDiv.find(".progressBarHolder").append("<div class=\"uploadProgressBar progress\"><div class=\"progress-bar\"></div></div>");
+			});
+			
+		} else if (containerDiv.find(".checkinurl").is(":visible")) {
 			othis.hideUpload();
 			containerDiv.find(".uploadProgressBar").addClass("progress-striped").addClass("active");
 			containerDiv.find(".uploadProgressBar .progress-bar").css("width", "100%");
@@ -331,7 +376,7 @@ function Checkin(containerDiv, project, successFunction) {
 	containerDiv.find(".btnUrl").click(function(){
 		containerDiv.find(".upload, .uploadbranch").hide();
 		containerDiv.find(".checkinurl").show();
-		containerDiv.find(".checkinurllink").hide();
+		containerDiv.find(".checkinurllink, .checkinlocal").hide();
 		containerDiv.find(".urlinput").focus();
 		containerDiv.find(".uploadButton").html("Checkin new revision");
 		othis.updateSubmitButton();
@@ -339,6 +384,15 @@ function Checkin(containerDiv, project, successFunction) {
 	
 	containerDiv.find(".btnFileUpload").click(function(){
 		containerDiv.find(".upload").show();
+		containerDiv.find(".showuploadlink").hide();
+		containerDiv.find(".uploadbranch, .checkinurl, .checkinlocal").hide();
+		containerDiv.find(".uploadButton").html("Checkin new revision");
+		othis.updateSubmitButton();
+	});
+	
+	containerDiv.find(".btnLocal").click(function(){
+		containerDiv.find(".upload").hide();
+		containerDiv.find(".checkinlocal").show();
 		containerDiv.find(".showuploadlink").hide();
 		containerDiv.find(".uploadbranch, .checkinurl").hide();
 		containerDiv.find(".uploadButton").html("Checkin new revision");
@@ -386,5 +440,7 @@ function Checkin(containerDiv, project, successFunction) {
 		containerDiv.find(".uploads").show();
 		containerDiv.find(".uploadlink").hide();
 	}
+	
+	containerDiv.find(".deserializerNameLocal").change(othis.updateSubmitButton);
 }
 </script>
