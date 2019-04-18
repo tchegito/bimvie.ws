@@ -74,7 +74,12 @@
           <include>settings.js</include>
         </includes>
       </resource>
-    </resources>
+      <resource>
+        <targetPath>plugin</targetPath>
+        <directory>plugin</directory>
+		<filtering>true</filtering>
+      </resource>
+	</resources>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
